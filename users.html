@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Users — Admin</title>
+  <link rel="icon" href="../assets/logo/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="stylesheet" href="../css/responsive.css" />
+  <link rel="stylesheet" href="../css/admin.css" />
+</head>
+<body>
+  <div class="admin-shell">
+    <aside class="admin-side">
+      <strong>PARESHANI</strong>
+      <a href="index.html">Overview</a>
+      <a href="reports.html">Reports</a>
+      <a class="active" href="users.html">Users</a>
+      <a href="moderation.html">History</a>
+      <a href="../index.html">Back to site</a>
+    </aside>
+    <div class="admin-main">
+      <h1 class="page-title">Users</h1>
+      <div class="table-wrap" id="box"></div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module">
+    import { bootPage, escapeHtml, toast } from "../js/app.js";
+    import { listUsers, setUserSuspended } from "../js/admin.js";
+    await bootPage({ protect: true, staff: true });
+    async function draw() {
+      const rows = await listUsers();
+      document.getElementById("box").innerHTML = `<table class="data">
+        <thead><tr><th>Name</th><th>Username</th><th>Joined</th><th>Status</th><th></th></tr></thead>
+        <tbody>${rows.map((u) => `
+          <tr>
+            <td>${escapeHtml(u.name)}</td>
+            <td>@${escapeHtml(u.username || "")}</td>
+            <td>${escapeHtml(new Date(u.created_at).toLocaleDateString())}</td>
+            <td>${u.is_suspended ? "Suspended" : "Active"}</td>
+            <td>
+              ${u.is_suspended
+                ? `<button class="btn btn-soft btn-sm" data-id="${u.id}" data-s="0">Unsuspend</button>`
+                : `<button class="btn btn-danger btn-sm" data-id="${u.id}" data-s="1">Suspend</button>`}
+            </td>
+          </tr>`).join("")}</tbody></table>`;
+    }
+    document.getElementById("box").addEventListener("click", async (e) => {
+      const b = e.target.closest("button[data-id]");
+      if (!b) return;
+      const reason = b.dataset.s === "1" ? (prompt("Reason") || "policy") : "";
+      try {
+        await setUserSuspended(b.dataset.id, b.dataset.s === "1", reason);
+        toast("Updated");
+        draw();
+      } catch (err) { toast(err.message); }
+    });
+    draw();
+  </script>
+</body>
+</html>

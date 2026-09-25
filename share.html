@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Apni Pareshani Share Karein — Pareshani</title>
+  <meta name="description" content="Share a real-life problem and let the community listen." />
+  <link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+</head>
+<body data-page="share">
+  <div id="app-shell">
+    <div class="wrap" style="max-width:720px">
+      <h1 class="page-title">Apni Pareshani Share Karein</h1>
+      <p class="page-sub">Jo pareshaani aapke mann mein hai, use share karein. Shayad kisi ke paas aapke sawaal ka jawab ho.</p>
+      <form class="panel" id="form">
+        <div class="alert" id="alert" hidden></div>
+        <div class="form-group">
+          <label for="title">Problem title</label>
+          <input id="title" name="title" maxlength="140" required placeholder="Job nahi mil rahi, kya karu?" />
+          <div class="field-error" id="titleErr"></div>
+        </div>
+        <div class="form-group">
+          <label for="category">Category</label>
+          <select id="category" name="category_id" required></select>
+          <div class="field-error" id="categoryErr"></div>
+        </div>
+        <div class="form-group">
+          <label for="description">Description</label>
+          <textarea id="description" name="description" required placeholder="Apni situation clearly likhein. Passwords, OTP, bank details mat share karein."></textarea>
+          <div class="field-error" id="descErr"></div>
+        </div>
+        <div class="form-group">
+          <label for="tags">Tags <span class="hint">optional, comma separated</span></label>
+          <input id="tags" name="tags" maxlength="80" placeholder="interview, first-job" />
+        </div>
+        <div class="form-group">
+          <label class="check">
+            <input type="checkbox" id="anon" />
+            <span>Post anonymously<br /><span class="hint">Anonymous means your profile name won't be shown publicly. Account ownership still exists for safety and moderation.</span></span>
+          </label>
+        </div>
+        <p class="hint">Health & wellbeing category general support ke liye hai — medical diagnosis yahan nahi milta.</p>
+        <button class="btn btn-primary btn-block" id="submit">Pareshani Share Karein</button>
+      </form>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module">
+    import { bootPage, loadCategories, setAlert, qs, toast } from "./js/app.js";
+    import { createProblem, validateProblem } from "./js/posts.js";
+    import { pageUrl } from "./js/config.js";
+
+    const auth = await bootPage({ protect: true });
+    const cats = await loadCategories();
+    qs("#category").innerHTML = `<option value="">Select category</option>` +
+      cats.map((c) => `<option value="${c.id || c.slug}">${c.name}</option>`).join("");
+
+    qs("#form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const title = qs("#title").value;
+      const description = qs("#description").value;
+      const rawCat = qs("#category").value;
+      const cat = cats.find((c) => String(c.id) === rawCat || c.slug === rawCat);
+      qs("#titleErr").textContent = "";
+      qs("#descErr").textContent = "";
+      qs("#categoryErr").textContent = "";
+      const fields = validateProblem({ title, description, category_id: cat?.id || rawCat });
+      if (fields.title) qs("#titleErr").textContent = fields.title;
+      if (fields.description) qs("#descErr").textContent = fields.description;
+      if (fields.category_id) qs("#categoryErr").textContent = fields.category_id;
+      if (Object.keys(fields).length) return;
+      if (!cat?.id) {
+        setAlert(qs("#alert"), "error", "Categories load nahi hui. Supabase setup complete karein.");
+        return;
+      }
+      const btn = qs("#submit");
+      btn.disabled = true;
+      btn.textContent = "Sharing...";
+      try {
+        const row = await createProblem({
+          title,
+          description,
+          category_id: cat.id,
+          is_anonymous: qs("#anon").checked,
+          tags: qs("#tags").value,
+        });
+        setAlert(qs("#alert"), "ok", "Your problem has been shared successfully.");
+        toast("Shared successfully");
+        location.href = pageUrl("problem.html", { id: row.id });
+      } catch (err) {
+        setAlert(qs("#alert"), "error", err.message);
+        btn.disabled = false;
+        btn.textContent = "Pareshani Share Karein";
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Profile — Pareshani</title>
+  <link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+</head>
+<body data-page="profile">
+  <div id="app-shell">
+    <div class="wrap">
+      <div id="view"></div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module">
+    import { bootPage, escapeHtml, problemCard, emptyState, qs, toast, initials } from "./js/app.js";
+    import { getAuth, logout, updateProfile } from "./js/auth.js";
+    import { listProblems } from "./js/posts.js";
+    import { listMyReplies } from "./js/replies.js";
+    import { profileStats } from "./js/profile.js";
+    import { isStaff } from "./js/auth.js";
+
+    const auth = await bootPage({ protect: true });
+    const p = auth.profile || { name: auth.session.user.email, username: "", created_at: auth.session.user.created_at };
+    const stats = await profileStats(auth.session.user.id).catch(() => ({ problems: 0, replies: 0, helpful: 0 }));
+
+    qs("#view").innerHTML = `
+      <div class="panel" style="display:flex;gap:14px;align-items:center;margin-bottom:16px">
+        <div class="avatar-chip" style="width:56px;height:56px;font-size:1.2rem">${escapeHtml(initials(p.name))}</div>
+        <div>
+          <h1 class="page-title" style="margin:0">${escapeHtml(p.name || "Member")}</h1>
+          <div class="hint">@${escapeHtml(p.username || "user")} · joined ${escapeHtml(new Date(p.created_at).toLocaleDateString())}</div>
+          <p style="margin:6px 0 0">${escapeHtml(p.bio || "")}</p>
+        </div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat"><b>${stats.problems}</b><span>Problems</span></div>
+        <div class="stat"><b>${stats.replies}</b><span>Replies</span></div>
+        <div class="stat"><b>${stats.helpful}</b><span>Helpful received</span></div>
+      </div>
+      <div class="tabs">
+        <button class="tab active" data-tab="problems">My Problems</button>
+        <button class="tab" data-tab="replies">My Replies</button>
+        <button class="tab" data-tab="edit">Edit profile</button>
+      </div>
+      <div id="tab"></div>
+      <div style="margin-top:18px;display:flex;gap:8px;flex-wrap:wrap">
+        <a class="btn btn-ghost" href="dashboard.html">Dashboard</a>
+        <a class="btn btn-ghost" href="settings.html">Settings</a>
+        ${isStaff() ? `<a class="btn btn-soft" href="admin/index.html">Admin</a>` : ""}
+        <button class="btn btn-danger" id="logout">Logout</button>
+      </div>
+    `;
+
+    const tabEl = qs("#tab");
+    async function show(tab) {
+      if (tab === "problems") {
+        tabEl.innerHTML = emptyState("Loading...");
+        const { data } = await listProblems({ userId: auth.session.user.id, status: "published" }).catch(() => ({ data: [] }));
+        tabEl.innerHTML = data.length ? `<div class="card-grid feed">${data.map(problemCard).join("")}</div>`
+          : emptyState("Aapne abhi koi problem share nahi ki.");
+      } else if (tab === "replies") {
+        const rows = await listMyReplies(auth.session.user.id).catch(() => []);
+        tabEl.innerHTML = rows.length ? rows.map((r) => `
+          <article class="panel" style="margin-bottom:10px">
+            <div class="hint">${escapeHtml(r.problems?.title || "Problem")}</div>
+            <p>${escapeHtml(r.content)}</p>
+          </article>`).join("") : emptyState("Abhi koi reply nahi.");
+      } else {
+        tabEl.innerHTML = `
+          <form class="panel" id="editForm">
+            <div class="form-group"><label>Name</label><input id="name" value="${escapeHtml(p.name || "")}" maxlength="80" required /></div>
+            <div class="form-group"><label>Username</label><input id="username" value="${escapeHtml(p.username || "")}" maxlength="24" /></div>
+            <div class="form-group"><label>Bio</label><textarea id="bio" maxlength="400" style="min-height:100px">${escapeHtml(p.bio || "")}</textarea></div>
+            <p class="hint">Email public nahi dikhaya jata.</p>
+            <button class="btn btn-primary">Save</button>
+          </form>`;
+        qs("#editForm").addEventListener("submit", async (e) => {
+          e.preventDefault();
+          try {
+            await updateProfile({
+              name: qs("#name").value.trim(),
+              username: qs("#username").value.trim().toLowerCase() || null,
+              bio: qs("#bio").value.trim() || null,
+            });
+            toast("Profile updated");
+            location.reload();
+          } catch (err) { toast(err.message); }
+        });
+      }
+    }
+    show("problems");
+    document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach((x) => x.classList.remove("active"));
+      b.classList.add("active");
+      show(b.dataset.tab);
+    }));
+    qs("#logout").addEventListener("click", async () => { await logout(); location.href = "index.html"; });
+  </script>
+</body>
+</html>

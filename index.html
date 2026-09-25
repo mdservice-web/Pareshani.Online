@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin — Pareshani</title>
+  <link rel="icon" href="../assets/logo/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="stylesheet" href="../css/responsive.css" />
+  <link rel="stylesheet" href="../css/admin.css" />
+</head>
+<body>
+  <div class="admin-shell">
+    <aside class="admin-side">
+      <strong>PARESHANI</strong>
+      <p class="hint" style="color:#aaa">Moderation</p>
+      <a class="active" href="index.html">Overview</a>
+      <a href="reports.html">Reports</a>
+      <a href="users.html">Users</a>
+      <a href="moderation.html">History</a>
+      <a href="../index.html">Back to site</a>
+    </aside>
+    <div class="admin-main">
+      <h1 class="page-title">Admin overview</h1>
+      <p class="page-sub">Sirf authorized staff. Frontend check ke saath RLS bhi enforce hota hai.</p>
+      <div class="stat-grid" id="stats"></div>
+      <p><a class="btn btn-primary" href="reports.html">Open reports</a></p>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module">
+    import { bootPage } from "../js/app.js";
+    import { listReports, listUsers } from "../js/admin.js";
+    await bootPage({ protect: true, staff: true });
+    const reports = await listReports("open").catch(() => []);
+    const users = await listUsers().catch(() => []);
+    document.getElementById("stats").innerHTML = `
+      <div class="stat"><b>${reports.length}</b><span>Open reports</span></div>
+      <div class="stat"><b>${users.length}</b><span>Recent users</span></div>
+      <div class="stat"><b>${users.filter(u=>u.is_suspended).length}</b><span>Suspended</span></div>`;
+  </script>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login — Pareshani</title>
+  <meta name="description" content="Login to share problems and reply on Pareshani." />
+  <link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+</head>
+<body data-page="profile">
+  <div id="app-shell">
+    <div class="wrap" style="max-width:480px">
+      <h1 class="page-title">Login</h1>
+      <p class="page-sub">Apni baat continue karne ke liye sign in karein.</p>
+      <form class="panel" id="form">
+        <div class="alert" id="alert" hidden></div>
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input id="email" type="email" required autocomplete="email" />
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input id="password" type="password" required minlength="8" autocomplete="current-password" />
+        </div>
+        <button class="btn btn-primary btn-block" id="submit">Login</button>
+        <p style="margin:14px 0 0"><a href="#" id="forgot">Forgot password?</a></p>
+        <p>Naye hain? <a href="register.html">Register</a></p>
+      </form>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module">
+    import { bootPage, setAlert, qs } from "./js/app.js";
+    import { login, resetPassword, getAuth } from "./js/auth.js";
+    await bootPage();
+    if (getAuth().session) location.href = "dashboard.html";
+
+    qs("#form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = qs("#submit");
+      btn.disabled = true;
+      try {
+        await login({ email: qs("#email").value.trim(), password: qs("#password").value });
+        const next = new URLSearchParams(location.search).get("next") || "dashboard.html";
+        location.href = next.replace(/[^a-z0-9._?=&-]/gi, "") || "dashboard.html";
+      } catch (err) {
+        setAlert(qs("#alert"), "error", err.message);
+        btn.disabled = false;
+      }
+    });
+
+    qs("#forgot").addEventListener("click", async (e) => {
+      e.preventDefault();
+      const email = qs("#email").value.trim();
+      if (!email) return setAlert(qs("#alert"), "error", "Reset ke liye email likhein.");
+      try {
+        await resetPassword(email);
+        setAlert(qs("#alert"), "ok", "Agar account exist karta hai to reset link email par bhej diya gaya hai.");
+      } catch (err) {
+        setAlert(qs("#alert"), "error", err.message);
+      }
+    });
+  </script>
+</body>
+</html>

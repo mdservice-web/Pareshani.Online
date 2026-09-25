@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard — Pareshani</title>
+  <link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+</head>
+<body data-page="profile">
+  <div id="app-shell">
+    <div class="wrap">
+      <h1 class="page-title">Dashboard</h1>
+      <p class="page-sub" id="hello"></p>
+      <div class="stat-grid" id="stats"></div>
+      <div class="card-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:20px">
+        <a class="cat-card" href="profile.html"><strong>Profile</strong><span>Name, bio, replies</span></a>
+        <a class="cat-card" href="saved.html"><strong>Saved</strong><span>Bookmarked problems</span></a>
+        <a class="cat-card" href="notifications.html"><strong>Notifications</strong><span>Replies & helpful</span></a>
+        <a class="cat-card" href="settings.html"><strong>Settings</strong><span>Password & account</span></a>
+        <a class="cat-card" href="share.html"><strong>Share</strong><span>Nayi pareshani</span></a>
+      </div>
+      <h2>My Problems</h2>
+      <div id="mine" class="card-grid feed"></div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module">
+    import { bootPage, problemCard, emptyState, qs, escapeHtml } from "./js/app.js";
+    import { listProblems } from "./js/posts.js";
+    import { profileStats } from "./js/profile.js";
+
+    const auth = await bootPage({ protect: true });
+    qs("#hello").textContent = `Namaste, ${auth.profile?.name || "friend"}.`;
+    const s = await profileStats(auth.session.user.id).catch(() => ({ problems: 0, replies: 0, helpful: 0 }));
+    qs("#stats").innerHTML = `
+      <div class="stat"><b>${s.problems}</b><span>Total Problems</span></div>
+      <div class="stat"><b>${s.replies}</b><span>Total Replies</span></div>
+      <div class="stat"><b>${s.helpful}</b><span>Helpful Received</span></div>`;
+    const { data } = await listProblems({ userId: auth.session.user.id, status: "any" }).catch(() => ({ data: [] }));
+    qs("#mine").innerHTML = data.length ? data.map(problemCard).join("") : emptyState("Abhi koi problem nahi.");
+  </script>
+</body>
+</html>

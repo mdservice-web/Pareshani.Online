@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Search — Pareshani</title>
+  <link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+</head>
+<body data-page="explore">
+  <div id="app-shell">
+    <div class="wrap">
+      <h1 class="page-title">Search</h1>
+      <form class="search-box" id="form">
+        <input type="search" id="q" placeholder="Search problems..." enterkeyhint="search" />
+        <button class="btn btn-primary">Search</button>
+      </form>
+      <p class="hint" id="label"></p>
+      <div id="list" class="card-grid feed" style="margin-top:16px"></div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module">
+    import { bootPage, problemCard, emptyState, qs, escapeHtml } from "./js/app.js";
+    import { searchProblems } from "./js/search.js";
+    await bootPage();
+    const q0 = new URLSearchParams(location.search).get("q") || "";
+    qs("#q").value = q0;
+
+    async function run(term) {
+      const t = term.trim();
+      history.replaceState(null, "", t ? `search.html?q=${encodeURIComponent(t)}` : "search.html");
+      if (t.length < 2) {
+        qs("#label").textContent = "Kam se kam 2 characters likhein.";
+        qs("#list").innerHTML = "";
+        return;
+      }
+      qs("#label").textContent = `Search results for: ${t}`;
+      qs("#list").innerHTML = emptyState("Searching...");
+      try {
+        const { data } = await searchProblems(t);
+        qs("#list").innerHTML = data.length ? data.map(problemCard).join("") : emptyState("Koi matching pareshani nahi mili.");
+      } catch {
+        qs("#list").innerHTML = emptyState("Kuch nahi mila. Dobara try karein.");
+      }
+    }
+    qs("#form").addEventListener("submit", (e) => { e.preventDefault(); run(qs("#q").value); });
+    if (q0) run(q0);
+  </script>
+</body>
+</html>

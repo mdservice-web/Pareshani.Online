@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Privacy Policy — Pareshani</title>
+  <link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+</head>
+<body>
+  <div id="app-shell">
+    <div class="wrap legal">
+      <h1 class="page-title">Privacy Policy</h1>
+      <p>Pareshani aapki baat sunne ke liye bana hai. Hum privacy ko seriously lete hain, lekin “anonymous” ka matlab absolute invisibility nahi hai.</p>
+      <h2>Jo information collect hoti hai</h2>
+      <ul>
+        <li>Account: name, optional username, email, hashed password (Supabase Auth)</li>
+        <li>Problems aur replies jo aap post karte hain</li>
+        <li>Helpful votes, saved posts, reports, notifications</li>
+        <li>Session cookies / local storage authentication ke liye</li>
+      </ul>
+      <h2>Anonymous posting</h2>
+      <p>Anonymous mode mein aapka public naam nahi dikhta. Database mein ownership (user id) moderation, abuse-prevention aur “edit/delete own post” ke liye store ho sakti hai. Yeh absolute anonymity ka wada nahi hai.</p>
+      <h2>Public content</h2>
+      <p>Published problems aur replies public padhe ja sakte hain. Email publicly nahi dikhaya jata jab tak aap khud na choose karein.</p>
+      <h2>Moderation</h2>
+      <p>Reports review kiye ja sakte hain. Staff hidden/deleted content aur account status dekh sakte hain taaki community safe rahe.</p>
+      <h2>Aapke rights</h2>
+      <p>Aap apna profile edit kar sakte hain, apni posts delete kar sakte hain, aur account related sawaal contact page se bhej sakte hain.</p>
+      <h2>Contact</h2>
+      <p>Privacy sawaal ke liye <a href="contact.html">contact</a> form use karein.</p>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module">
+    import { bootPage } from "./js/app.js";
+    await bootPage();
+  </script>
+</body>
+</html>

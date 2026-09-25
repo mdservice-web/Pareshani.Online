@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Problem — Pareshani</title>
+  <meta name="description" content="Read a community problem and share a helpful reply." />
+  <link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+</head>
+<body data-page="explore">
+  <div id="app-shell">
+    <div class="wrap" style="max-width:760px">
+      <div id="content">${/* filled */""}</div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module">
+    import { bootPage, escapeHtml, timeAgo, authorLabel, emptyState, qs, toast, setAlert } from "./js/app.js";
+    import { getProblem, updateProblem, deleteProblem } from "./js/posts.js";
+    import { listReplies, createReply, updateReply, deleteReply } from "./js/replies.js";
+    import { hasProblemVote, toggleProblemVote, toggleReplyVote, hasReplyVote } from "./js/helpful.js";
+    import { toggleSave, isSaved } from "./js/saved.js";
+    import { openReportModal } from "./js/reports.js";
+    import { getAuth } from "./js/auth.js";
+    import { pageUrl } from "./js/config.js";
+
+    const auth = await bootPage();
+    const id = new URLSearchParams(location.search).get("id");
+    const root = qs("#content");
+
+    if (!id) {
+      root.innerHTML = emptyState("Problem nahi mili.");
+    } else {
+      try {
+        const problem = await getProblem(id);
+        if (!problem || problem.status === "deleted") {
+          root.innerHTML = emptyState("Yeh pareshani available nahi hai.");
+        } else {
+          await render(problem);
+        }
+      } catch {
+        root.innerHTML = emptyState("Kuch problem aa gayi. Please dobara try karein.");
+      }
+    }
+
+    async function render(problem) {
+      document.title = `${problem.title} — Pareshani`;
+      const uid = auth.session?.user?.id;
+      const mine = uid && uid === problem.user_id;
+      const voted = await hasProblemVote(problem.id).catch(() => false);
+      const saved = uid ? await isSaved(problem.id).catch(() => false) : false;
+      const replies = await listReplies(problem.id).catch(() => []);
+
+      root.innerHTML = `
+        <span class="cat-pill">${escapeHtml(problem.categories?.name || "")}</span>
+        <h1 class="page-title">${escapeHtml(problem.title)}</h1>
+        <div class="meta-row" style="margin-bottom:16px">
+          <span>${escapeHtml(authorLabel(problem))}</span>
+          <span>${escapeHtml(timeAgo(problem.created_at))}</span>
+          ${problem.tags?.length ? problem.tags.map((t) => `<span class="badge">${escapeHtml(t)}</span>`).join("") : ""}
+        </div>
+        <div class="panel">
+          <div class="prose">${escapeHtml(problem.description)}</div>
+          <div class="action-bar">
+            <button class="btn btn-soft btn-sm" id="helpfulBtn">${voted ? "♥ Helpful" : "♡ Helpful"} · ${problem.helpful_count || 0}</button>
+            <button class="btn btn-ghost btn-sm" id="saveBtn">${saved ? "Saved" : "Save"}</button>
+            <button class="btn btn-ghost btn-sm" id="reportBtn">Report</button>
+            ${mine ? `<button class="btn btn-ghost btn-sm" id="editP">Edit</button>
+                      <button class="btn btn-danger btn-sm" id="delP">Delete</button>` : ""}
+          </div>
+        </div>
+
+        <div class="section-head"><h2>Replies</h2><span class="hint">${replies.length}</span></div>
+        <div id="replies"></div>
+
+        <div class="panel" style="margin-top:16px" id="replyBox"></div>
+      `;
+
+      const list = qs("#replies");
+      if (!replies.length) {
+        list.innerHTML = emptyState("Abhi tak koi reply nahi hai. Aap pehla jawab de sakte hain.");
+      } else {
+        list.innerHTML = replies.map((r) => replyHtml(r, uid)).join("");
+      }
+
+      if (!auth.session) {
+        qs("#replyBox").innerHTML = `<p>Login karke reply karein. <a href="${pageUrl("login.html", { next: "problem.html?id=" + problem.id })}">Login</a></p>`;
+      } else {
+        qs("#replyBox").innerHTML = `
+          <label for="replyText">Apna jawab likhein...</label>
+          <textarea id="replyText" maxlength="4000" placeholder="Respectful, practical suggestion ya apna experience."></textarea>
+          <label class="check" style="margin:10px 0">
+            <input type="checkbox" id="replyAnon" />
+            <span>Reply anonymously <span class="hint">— naam public nahi dikhega</span></span>
+          </label>
+          <div class="alert" id="replyAlert" hidden></div>
+          <button class="btn btn-primary" id="replyBtn">Reply Karein</button>
+        `;
+        qs("#replyBtn").addEventListener("click", async () => {
+          const btn = qs("#replyBtn");
+          btn.disabled = true;
+          btn.textContent = "Sending...";
+          try {
+            await createReply({
+              problem_id: problem.id,
+              content: qs("#replyText").value,
+              is_anonymous: qs("#replyAnon").checked,
+            });
+            toast("Reply bhej diya");
+            location.reload();
+          } catch (err) {
+            setAlert(qs("#replyAlert"), "error", err.message);
+            btn.disabled = false;
+            btn.textContent = "Reply Karein";
+          }
+        });
+      }
+
+      qs("#helpfulBtn").addEventListener("click", async () => {
+        try {
+          const res = await toggleProblemVote(problem.id);
+          qs("#helpfulBtn").textContent = res.voted ? "♥ Helpful" : "♡ Helpful";
+        } catch (err) { toast(err.message); }
+      });
+      qs("#saveBtn").addEventListener("click", async () => {
+        if (!uid) return location.href = pageUrl("login.html", { next: "problem.html?id=" + problem.id });
+        try {
+          const res = await toggleSave(problem.id);
+          qs("#saveBtn").textContent = res.saved ? "Saved" : "Save";
+        } catch (err) { toast(err.message); }
+      });
+      qs("#reportBtn").addEventListener("click", () => {
+        if (!uid) return location.href = pageUrl("login.html", { next: "problem.html?id=" + problem.id });
+        openReportModal({ problemId: problem.id });
+      });
+
+      qs("#editP")?.addEventListener("click", async () => {
+        const next = prompt("Naya title", problem.title);
+        if (!next) return;
+        const desc = prompt("Nayi description", problem.description);
+        if (!desc) return;
+        try {
+          await updateProblem(problem.id, { title: next, description: desc });
+          location.reload();
+        } catch (err) { toast(err.message); }
+      });
+      qs("#delP")?.addEventListener("click", async () => {
+        if (!confirm("Is pareshani ko delete karein?")) return;
+        try {
+          await deleteProblem(problem.id);
+          location.href = "dashboard.html";
+        } catch (err) { toast(err.message); }
+      });
+
+      list.addEventListener("click", async (e) => {
+        const btn = e.target.closest("[data-act]");
+        if (!btn) return;
+        const rid = btn.dataset.id;
+        const act = btn.dataset.act;
+        try {
+          if (act === "helpful") {
+            if (!uid) throw new Error("LOGIN");
+            await toggleReplyVote(rid);
+            location.reload();
+          } else if (act === "report") {
+            if (!uid) throw new Error("LOGIN");
+            openReportModal({ replyId: rid });
+          } else if (act === "delete") {
+            if (!confirm("Reply delete karein?")) return;
+            await deleteReply(rid);
+            location.reload();
+          } else if (act === "edit") {
+            const current = btn.closest(".reply").querySelector(".prose").textContent;
+            const next = prompt("Edit reply", current);
+            if (!next) return;
+            await updateReply(rid, next);
+            location.reload();
+          }
+        } catch (err) {
+          if (err.message === "LOGIN") location.href = pageUrl("login.html", { next: "problem.html?id=" + problem.id });
+          else toast(err.message);
+        }
+      });
+    }
+
+    function replyHtml(r, uid) {
+      const mine = uid && uid === r.user_id;
+      return `
+        <article class="reply">
+          <div class="reply-head">
+            <strong>${escapeHtml(authorLabel(r))}</strong>
+            <span class="hint">${escapeHtml(timeAgo(r.created_at))}</span>
+          </div>
+          <div class="prose">${escapeHtml(r.content)}</div>
+          <div class="reply-actions">
+            <button class="btn btn-ghost btn-sm" data-act="helpful" data-id="${r.id}">♡ Helpful · ${r.helpful_count || 0}</button>
+            <button class="btn btn-ghost btn-sm" data-act="report" data-id="${r.id}">Report</button>
+            ${mine ? `<button class="btn btn-ghost btn-sm" data-act="edit" data-id="${r.id}">Edit</button>
+                      <button class="btn btn-danger btn-sm" data-act="delete" data-id="${r.id}">Delete</button>` : ""}
+          </div>
+        </article>`;
+    }
+  </script>
+</body>
+</html>

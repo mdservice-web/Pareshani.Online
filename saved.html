@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Saved — Pareshani</title>
+  <link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+</head>
+<body data-page="profile">
+  <div id="app-shell">
+    <div class="wrap">
+      <h1 class="page-title">Saved Problems</h1>
+      <p class="page-sub">Jo pareshaniyan aapne bookmark ki hain.</p>
+      <div id="list" class="card-grid feed"></div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module">
+    import { bootPage, problemCard, emptyState, qs } from "./js/app.js";
+    import { listSaved } from "./js/saved.js";
+    await bootPage({ protect: true });
+    const rows = await listSaved().catch(() => []);
+    qs("#list").innerHTML = rows.length ? rows.map(problemCard).join("") : emptyState("Aapne abhi koi problem save nahi ki.");
+  </script>
+</body>
+</html>

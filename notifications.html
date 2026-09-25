@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Notifications — Pareshani</title>
+  <link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+</head>
+<body data-page="notifications">
+  <div id="app-shell">
+    <div class="wrap">
+      <div class="section-head">
+        <h1 class="page-title">Notifications</h1>
+        <button class="btn btn-ghost btn-sm" id="all">Mark all read</button>
+      </div>
+      <div id="list"></div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module">
+    import { bootPage, emptyState, qs, escapeHtml, timeAgo, asset } from "./js/app.js";
+    import { listNotifications, markAllRead, markRead } from "./js/notifications.js";
+    await bootPage({ protect: true });
+    const rows = await listNotifications().catch(() => []);
+    if (!rows.length) qs("#list").innerHTML = emptyState("Abhi koi notification nahi.");
+    else {
+      qs("#list").innerHTML = rows.map((n) => `
+        <a class="problem-card" data-id="${n.id}" href="${asset(n.link || "dashboard.html")}" style="${n.is_read ? "opacity:.72" : ""}">
+          <strong>${escapeHtml(n.title)}</strong>
+          <p class="excerpt">${escapeHtml(n.body || "")}</p>
+          <div class="meta-row"><span>${escapeHtml(timeAgo(n.created_at))}</span></div>
+        </a>`).join("");
+      qs("#list").addEventListener("click", (e) => {
+        const a = e.target.closest("a[data-id]");
+        if (a) markRead(a.dataset.id);
+      });
+    }
+    qs("#all").addEventListener("click", async () => { await markAllRead(); location.reload(); });
+  </script>
+</body>
+</html>

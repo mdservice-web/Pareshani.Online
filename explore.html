@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Explore — Pareshani</title>
+  <meta name="description" content="Latest community problems, most helpful answers, and active discussions on Pareshani." />
+  <link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+</head>
+<body data-page="explore">
+  <div id="app-shell">
+    <div class="wrap">
+      <h1 class="page-title">Explore</h1>
+      <p class="page-sub">Jo pareshaaniyan logon ne share ki hain.</p>
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-sort="latest">Latest</button>
+        <button class="tab" data-sort="helpful">Most Helpful</button>
+        <button class="tab" data-sort="discussed">Most Discussed</button>
+      </div>
+      <div class="card-grid feed" id="feed"></div>
+      <div style="margin-top:16px;display:flex;justify-content:center">
+        <button class="btn btn-ghost" id="more" hidden>Aur dekhein</button>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module">
+    import { bootPage, problemCard, skeletons, emptyState, qs, qsa } from "./js/app.js";
+    import { listProblems } from "./js/posts.js";
+    await bootPage();
+    let sort = "latest", page = 0, total = 0;
+    const feed = qs("#feed");
+    const more = qs("#more");
+
+    async function load(reset) {
+      if (reset) { page = 0; feed.innerHTML = skeletons(4); }
+      const { data, count, configured } = await listProblems({ sort, page });
+      total = count;
+      if (!configured && reset) {
+        feed.innerHTML = emptyState("Supabase connect karein. Phir live feed yahan aayegi.");
+        more.hidden = true;
+        return;
+      }
+      if (reset && !data.length) {
+        feed.innerHTML = emptyState("Abhi koi pareshani share nahi hui.");
+        more.hidden = true;
+        return;
+      }
+      const html = data.map(problemCard).join("");
+      feed.innerHTML = reset ? html : feed.innerHTML + html;
+      more.hidden = (page + 1) * 12 >= total;
+    }
+
+    qsa(".tab").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        qsa(".tab").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        sort = btn.dataset.sort;
+        load(true).catch(() => { feed.innerHTML = emptyState("Kuch problem aa gayi."); });
+      });
+    });
+    more.addEventListener("click", () => { page += 1; load(false); });
+    try { await load(true); } catch { feed.innerHTML = emptyState("Kuch problem aa gayi. Please dobara try karein."); }
+  </script>
+</body>
+</html>

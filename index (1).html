@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pareshani — Apni baat bolo. Koi sunega.</title>
+  <meta name="description" content="Pareshani ek community platform hai jahan aap apni problems share kar sakte hain aur dusron se advice aur support paa sakte hain." />
+  <meta property="og:title" content="Pareshani — Apni baat bolo. Koi sunega." />
+  <meta property="og:description" content="Share your problem. Someone will listen." />
+  <meta property="og:type" content="website" />
+  <link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+</head>
+<body data-page="home">
+  <div id="app-shell">
+    <section class="hero">
+      <div class="hero-inner">
+        <div class="eyebrow">Community support, respectfully</div>
+        <h1>Apni baat bolo.<br />Koi sunega.</h1>
+        <p class="lead">Har kisi ki koi na koi pareshani hoti hai. Jo kehna hai, keh do. Yahan log apni pareshaniyan share karte hain, experiences batate hain aur ek dusre ko jawab dete hain.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="share.html">Apni Pareshani Share Karein</a>
+          <a class="btn btn-ghost" href="explore.html">Problems Dekhein</a>
+        </div>
+        <div class="steps">
+          <div class="step"><span class="step-num">1</span><div><strong>Share</strong><span>Apni problem likhein — chahein to anonymous.</span></div></div>
+          <div class="step"><span class="step-num">2</span><div><strong>Read</strong><span>Dusre log use padhte hain.</span></div></div>
+          <div class="step"><span class="step-num">3</span><div><strong>Reply</strong><span>Log experiences aur suggestions dete hain.</span></div></div>
+          <div class="step"><span class="step-num">4</span><div><strong>Support</strong><span>Shayad kisi ke paas aapka jawab ho.</span></div></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Categories</h2>
+        <a href="categories.html">Sab dekhein</a>
+      </div>
+      <div class="cat-grid" id="cats"></div>
+
+      <div class="section-head">
+        <h2>Latest Pareshaniyan</h2>
+        <a href="explore.html">Explore</a>
+      </div>
+      <div class="card-grid feed" id="feed"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module">
+    import { bootPage, renderCategoryGrid, problemCard, skeletons, emptyState, qs } from "./js/app.js";
+    import { listProblems } from "./js/posts.js";
+
+    await bootPage();
+    renderCategoryGrid(qs("#cats"));
+    const feed = qs("#feed");
+    feed.innerHTML = skeletons(4);
+    try {
+      const { data, configured } = await listProblems({ sort: "latest", page: 0 });
+      if (!configured) {
+        feed.innerHTML = emptyState("Database connect hone ke baad yahan latest problems dikhengi. README dekhein.");
+      } else if (!data.length) {
+        feed.innerHTML = emptyState("Abhi koi pareshani share nahi hui. Pehle aap share kar sakte hain.");
+      } else {
+        feed.innerHTML = data.map(problemCard).join("");
+      }
+    } catch {
+      feed.innerHTML = emptyState("Kuch problem aa gayi. Please dobara try karein.");
+    }
+  </script>
+</body>
+</html>

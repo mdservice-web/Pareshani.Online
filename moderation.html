@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Moderation history — Admin</title>
+  <link rel="icon" href="../assets/logo/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="stylesheet" href="../css/responsive.css" />
+  <link rel="stylesheet" href="../css/admin.css" />
+</head>
+<body>
+  <div class="admin-shell">
+    <aside class="admin-side">
+      <strong>PARESHANI</strong>
+      <a href="index.html">Overview</a>
+      <a href="reports.html">Reports</a>
+      <a href="users.html">Users</a>
+      <a class="active" href="moderation.html">History</a>
+      <a href="../index.html">Back to site</a>
+    </aside>
+    <div class="admin-main">
+      <h1 class="page-title">Moderation history</h1>
+      <div class="table-wrap" id="box"></div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module">
+    import { bootPage, escapeHtml, emptyState } from "../js/app.js";
+    import { listModeration, listHiddenProblems } from "../js/admin.js";
+    await bootPage({ protect: true, staff: true });
+    const rows = await listModeration().catch(() => []);
+    const hidden = await listHiddenProblems().catch(() => []);
+    document.getElementById("box").innerHTML = `
+      <h2>Hidden / deleted problems</h2>
+      ${hidden.length ? `<table class="data"><thead><tr><th>Title</th><th>Status</th><th>When</th></tr></thead><tbody>
+        ${hidden.map((p) => `<tr><td>${escapeHtml(p.title)}</td><td>${escapeHtml(p.status)}</td><td>${escapeHtml(new Date(p.created_at).toLocaleString())}</td></tr>`).join("")}
+      </tbody></table>` : emptyState("None")}
+      <h2>Action log</h2>
+      ${rows.length ? `<table class="data"><thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Target</th><th>Note</th></tr></thead><tbody>
+        ${rows.map((m) => `<tr>
+          <td>${escapeHtml(new Date(m.created_at).toLocaleString())}</td>
+          <td>${escapeHtml(m.actor?.username || m.actor?.name || "")}</td>
+          <td>${escapeHtml(m.action)}</td>
+          <td>${escapeHtml(m.target_type)} ${escapeHtml(m.target_id)}</td>
+          <td>${escapeHtml(m.note || "")}</td>
+        </tr>`).join("")}
+      </tbody></table>` : emptyState("No actions yet.")}`;
+  </script>
+</body>
+</html>

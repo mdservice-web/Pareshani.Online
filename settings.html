@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Settings — Pareshani</title>
+  <link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+</head>
+<body data-page="profile">
+  <div id="app-shell">
+    <div class="wrap" style="max-width:560px">
+      <h1 class="page-title">Settings</h1>
+      <form class="panel" id="pw">
+        <h2 style="margin-top:0">Change password</h2>
+        <div class="alert" id="alert" hidden></div>
+        <div class="form-group">
+          <label for="password">New password</label>
+          <input id="password" type="password" minlength="8" required autocomplete="new-password" />
+        </div>
+        <button class="btn btn-primary">Update password</button>
+      </form>
+      <div class="panel" style="margin-top:12px">
+        <h2 style="margin-top:0">Account</h2>
+        <p class="hint">Email public nahi dikhaya jata. Anonymous posts par bhi ownership moderation ke liye save rehti hai.</p>
+        <p id="email"></p>
+        <button class="btn btn-danger" id="logout">Logout</button>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module">
+    import { bootPage, qs, setAlert } from "./js/app.js";
+    import { logout, updatePassword } from "./js/auth.js";
+    const auth = await bootPage({ protect: true });
+    qs("#email").textContent = auth.session.user.email;
+    qs("#pw").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      try {
+        await updatePassword(qs("#password").value);
+        setAlert(qs("#alert"), "ok", "Password update ho gaya.");
+      } catch (err) {
+        setAlert(qs("#alert"), "error", err.message);
+      }
+    });
+    qs("#logout").addEventListener("click", async () => { await logout(); location.href = "index.html"; });
+  </script>
+</body>
+</html>

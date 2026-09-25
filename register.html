@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Register — Pareshani</title>
+  <meta name="description" content="Create a Pareshani account to share problems and help others." />
+  <link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+</head>
+<body data-page="profile">
+  <div id="app-shell">
+    <div class="wrap" style="max-width:480px">
+      <h1 class="page-title">Register</h1>
+      <p class="page-sub">Community join karein — respectfully.</p>
+      <form class="panel" id="form">
+        <div class="alert" id="alert" hidden></div>
+        <div class="form-group">
+          <label for="name">Name</label>
+          <input id="name" required minlength="2" maxlength="80" autocomplete="name" />
+        </div>
+        <div class="form-group">
+          <label for="username">Username <span class="hint">optional</span></label>
+          <input id="username" minlength="3" maxlength="24" pattern="[a-z0-9_]+" placeholder="lowercase letters, numbers, _" />
+        </div>
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input id="email" type="email" required autocomplete="email" />
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input id="password" type="password" required minlength="8" autocomplete="new-password" />
+        </div>
+        <div class="form-group">
+          <label for="confirm">Confirm password</label>
+          <input id="confirm" type="password" required minlength="8" autocomplete="new-password" />
+        </div>
+        <button class="btn btn-primary btn-block" id="submit">Create account</button>
+        <p>Pehle se account hai? <a href="login.html">Login</a></p>
+      </form>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module">
+    import { bootPage, setAlert, qs } from "./js/app.js";
+    import { register, getAuth } from "./js/auth.js";
+    await bootPage();
+    if (getAuth().session) location.href = "dashboard.html";
+
+    qs("#form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const password = qs("#password").value;
+      if (password !== qs("#confirm").value) {
+        return setAlert(qs("#alert"), "error", "Passwords match nahi karte.");
+      }
+      const btn = qs("#submit");
+      btn.disabled = true;
+      try {
+        const res = await register({
+          name: qs("#name").value.trim(),
+          username: qs("#username").value.trim().toLowerCase(),
+          email: qs("#email").value.trim(),
+          password,
+        });
+        if (res.session) location.href = "dashboard.html";
+        else setAlert(qs("#alert"), "ok", "Account ban gaya. Agar email confirmation on hai to inbox check karein, phir login kijiye.");
+      } catch (err) {
+        setAlert(qs("#alert"), "error", err.message);
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

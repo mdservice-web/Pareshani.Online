@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Reports — Admin</title>
+  <link rel="icon" href="../assets/logo/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="stylesheet" href="../css/responsive.css" />
+  <link rel="stylesheet" href="../css/admin.css" />
+</head>
+<body>
+  <div class="admin-shell">
+    <aside class="admin-side">
+      <strong>PARESHANI</strong>
+      <a href="index.html">Overview</a>
+      <a class="active" href="reports.html">Reports</a>
+      <a href="users.html">Users</a>
+      <a href="moderation.html">History</a>
+      <a href="../index.html">Back to site</a>
+    </aside>
+    <div class="admin-main">
+      <h1 class="page-title">Reports</h1>
+      <div class="tabs">
+        <button class="tab active" data-s="open">Open</button>
+        <button class="tab" data-s="resolved">Resolved</button>
+        <button class="tab" data-s="rejected">Rejected</button>
+        <button class="tab" data-s="all">All</button>
+      </div>
+      <div class="table-wrap" id="box"></div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module">
+    import { bootPage, escapeHtml, toast } from "../js/app.js";
+    import { listReports, resolveReport, hideProblem, deleteProblemAdmin, deleteReplyAdmin } from "../js/admin.js";
+    await bootPage({ protect: true, staff: true });
+
+    async function draw(status) {
+      const rows = await listReports(status);
+      const box = document.getElementById("box");
+      if (!rows.length) { box.innerHTML = `<div class="empty">No reports.</div>`; return; }
+      box.innerHTML = `<table class="data">
+        <thead><tr><th>When</th><th>Reason</th><th>Target</th><th>By</th><th>Actions</th></tr></thead>
+        <tbody>
+          ${rows.map((r) => `
+            <tr>
+              <td>${escapeHtml(new Date(r.created_at).toLocaleString())}<br/><span class="badge">${escapeHtml(r.status)}</span></td>
+              <td>${escapeHtml(r.reason)}<div class="hint">${escapeHtml(r.description || "")}</div></td>
+              <td>${r.problem_id ? `Problem: ${escapeHtml(r.problems?.title || r.problem_id)}` : `Reply: ${escapeHtml((r.replies?.content || "").slice(0,80))}`}</td>
+              <td>${escapeHtml(r.reporter?.username || r.reporter?.name || "")}</td>
+              <td>
+                ${r.problem_id ? `<button class="btn btn-ghost btn-sm" data-a="hide-p" data-id="${r.problem_id}">Hide problem</button>
+                                 <button class="btn btn-danger btn-sm" data-a="del-p" data-id="${r.problem_id}">Delete problem</button>` : ""}
+                ${r.reply_id ? `<button class="btn btn-danger btn-sm" data-a="del-r" data-id="${r.reply_id}">Delete reply</button>` : ""}
+                <button class="btn btn-soft btn-sm" data-a="resolve" data-id="${r.id}">Resolve</button>
+                <button class="btn btn-ghost btn-sm" data-a="reject" data-id="${r.id}">Reject</button>
+              </td>
+            </tr>`).join("")}
+        </tbody></table>`;
+    }
+
+    document.getElementById("box").addEventListener("click", async (e) => {
+      const b = e.target.closest("button[data-a]");
+      if (!b) return;
+      try {
+        if (b.dataset.a === "hide-p") await hideProblem(b.dataset.id, "report");
+        if (b.dataset.a === "del-p") await deleteProblemAdmin(b.dataset.id, "report");
+        if (b.dataset.a === "del-r") await deleteReplyAdmin(b.dataset.id, "report");
+        if (b.dataset.a === "resolve") await resolveReport(b.dataset.id, "resolved");
+        if (b.dataset.a === "reject") await resolveReport(b.dataset.id, "rejected");
+        toast("Updated");
+        draw(document.querySelector(".tab.active").dataset.s);
+      } catch (err) { toast(err.message); }
+    });
+
+    document.querySelectorAll(".tab").forEach((t) => t.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach((x) => x.classList.remove("active"));
+      t.classList.add("active");
+      draw(t.dataset.s);
+    }));
+    draw("open");
+  </script>
+</body>
+</html>

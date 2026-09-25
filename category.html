@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Category — Pareshani</title>
+  <link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+</head>
+<body data-page="categories">
+  <div id="app-shell">
+    <div class="wrap">
+      <h1 class="page-title" id="title">Category</h1>
+      <p class="page-sub" id="sub"></p>
+      <div class="alert alert-info" id="healthNote" hidden>
+        Health & wellbeing general discussion ke liye hai. Yahan medical diagnosis nahi milta. Serious concern ho to professional help lein.
+      </div>
+      <div id="list" class="card-grid feed"></div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module">
+    import { bootPage, problemCard, emptyState, qs, loadCategories, escapeHtml } from "./js/app.js";
+    import { listProblems } from "./js/posts.js";
+    await bootPage();
+    const slug = new URLSearchParams(location.search).get("slug") || "other";
+    const cats = await loadCategories();
+    const cat = cats.find((c) => c.slug === slug);
+    qs("#title").textContent = cat?.name || "Category";
+    qs("#sub").textContent = cat?.description || "";
+    document.title = `${cat?.name || "Category"} — Pareshani`;
+    if (slug === "health") qs("#healthNote").hidden = false;
+    const { data, configured } = await listProblems({ categorySlug: slug }).catch(() => ({ data: [], configured: false }));
+    if (!configured) qs("#list").innerHTML = emptyState("Database connect karein.");
+    else qs("#list").innerHTML = data.length ? data.map(problemCard).join("") : emptyState("Is category mein abhi koi pareshani nahi hai.");
+  </script>
+</body>
+</html>
